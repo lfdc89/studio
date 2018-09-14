@@ -19,8 +19,48 @@ Spring avremo quindi:
 			  e, grazie ai Model e alle View, si occupano di gestire la richiesta dell'utente.
 			  
 
-// FUNZIONAMENTO
+// FUNZIONAMENTO E CONFIGURAZIONE
 Il funzionamento di SpringMVC ruota tutto intorno alla DispatcherServlet, la quale permette di re-dirigere tutte
 le chiamate della nostra applicazione verso il mondo di SpringMVC.
 
-Come prima cosa bisogna configurare questa servlet.
+Come prima cosa bisogna configurare questa servlet. Quindi un war con Spring necessita di un web.xml, all'interno
+del quale definire la DispatcherServlet.
+Spring MVC al caricamento della servlet va alla ricerca di un file (all'interno di WEB-INF) chiamato 
+{nome_servlet}-servlet.xml {nel caso in esame la servlet si chiama springmvc, quindi springmvc-servlet.xml),
+che rappresenta il file di configurazione del framework. Al suo interno, infatti, vanno definiti tutti i bean
+e le configurazioni da utilizzare in SpringMVC.
+
+Spring sfrutta il paradigma "Convention over configuration", che prevede una configurazione minimale seguita da
+un utilizzo attento di una serie di convenzioni.
+Per esempio utilizzando Maven è consigliato utilizzare la cartella resources per tutti i file di configurazione 
+dell’applicazione al posto della cartella WEB-INF. Grazie al parametro contextConfigLocation è possibile 
+differenziare il percorso del (o dei) file XML di configurazione del contesto di Spring MVC. Quindi
+nel web.xml andrebbe indicato:
+<servlet>
+	<servlet-name>springmvc</servlet-name>
+	<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+	<init-param>
+		<param-name>contextConfigLocation</param-name>
+		<param-value>classpath*:META-INF/spring/*.xml</param-value>
+	</init-param>
+	<load-on-startup>1</load-on-startup>
+</servlet>
+cosi ho indicato che sotto META-INF ho creato una cartella spring nella quale ci saranno le config di spring.
+Mettendo *.xml ho indicato che potrei distrubire la configurazione in diversi xml (e.g. i bean in xml diversi).
+
+Per ciascuna servlet utilizzata viene istanziato un WebApplicationContext, all'interno del quale vivono tutti i
+bean definiti. Questo contesto viene agganciato allo standard ServletContext in modo da essere recuperato facilmente.
+In questo speciale contesto sono presenti alcuni bean che configurano in maniera particolare SpringMVC.
+I principali sono:
+- HandlerMapping: bean che si occupa di mappare le url invocate dal client verso un particolare metodo o classe.
+				  Di default il bean utilizza le java annotations.
+- HandlerExceptionResolver: bean che gestisce l'output al client in caso di eccezioni.
+- ViewResolver: bean che si occupa di identificare quale view caricare sulla base del nome in formato stringa.
+- LocaleResolver: bean che gestisce l'internazionalizzazione.
+
+// CONTROLLER 
+I Controller rappresentano la vera anima del paradigma MVC: essi vengono invocati dal client e si occupano delle logiche
+di buisiness. Inoltre possono esistere anche senza Model e View.
+Il bean che si occupa di mappare url/metodo java è l'handlerMapping. Di default si utilizza il bean RequestMappingHandlerMapping
+che permette di sfruttare le annotations per identificare i metodi da mappare.
+Quindi con @Controller identifico una classe come controller, mentre con @RequestMapping assengo una funzione ad un url.
