@@ -64,3 +64,69 @@ di buisiness. Inoltre possono esistere anche senza Model e View.
 Il bean che si occupa di mappare url/metodo java è l'handlerMapping. Di default si utilizza il bean RequestMappingHandlerMapping
 che permette di sfruttare le annotations per identificare i metodi da mappare.
 Quindi con @Controller identifico una classe come controller, mentre con @RequestMapping assengo una funzione ad un url.
+
+Spring consente di personalizzare a piacimento la signature del metodo (num e tipo di parametri).
+Ecco un elenco dei principali parametri disponibili:
+- @PathVariable: recuperati dal pattern
+- @RequestParam: inviati via HTTP dal client
+- @RequestHeader: per avere un valore tra gli header HTTP ricevuti
+- @RequestBody: per avere direttamente il corpo della request
+- HttpServletRequest, HttpServletResponse: per accedere ad oggetti nativi J2EE
+- HttpSession: per sfruttare la sessione senza doverla recuparare manualmente dalla request
+- InpuStream, OutputStream: per lavorare a basso livello direttamente sugli stream in ingresso ed uscita
+
+Questi oggetti non dovranno essere recuperati: una volta inseriti nella signature del metodo diventeranno immediatamente disponibili.
+Discorso analogo vale per i parametri di ritorno:
+- void: funzione batch, che non produce alcun output verso il client
+- string per invocare ViewResolver: a partire da questa stringa verrà recuperata una vista.
+- string con prefisso redirect: per forzare una redirect verso un'altra url
+- string con prefisso forward: per forzare il forward verso un altro handler
+- ModelAndView: incapsulano sia il nome della vissta da caricare sia l'insieme dei dati da passare ad essa
+- qualsiasi tipo di oggetto da convertire tramite un HttpMessageConverter (per esempio in JSON o XML) se il metodo è annotato con @ResponseBody
+
+// VIEW RESOLVER
+I controller delegano alle viste il compito di mostrare all'utente i contenuti in maniera presentabile.
+Quando questi ritornano una stringa (che non inizi per forward o redirec) o un oggetto ModelAndView, significa che esso vuole delegare al motore
+interno di SpringMVC la creazione di una vista (identificata dal valore della stringa o incapsulata nel ModelAndView).
+Riassumendo:
+Stringa --> ViewResolver --> View
+Spring non fornisce alcun ViewResolver di default.
+
+Il caso più classico di ViewResolver è l'InternalResourceViewResolver, che permette di identificare una View sulla base di risorse interne al progetto
+come ad esempio JSP. Per inserire un InternalResourceViewResolver basta creare un bean:
+<bean id="viewResolver" class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+	<property name="viewClass" value="org.springframework.web.servlet.view.JstlView"/>
+	<property name="prefix" value="/WEB-INF/view/"/>
+	<property name="suffix" value=".jsp"/>
+</bean>
+In questo modo abbiamo definito il nostro ViewResolver che sarà in grado di recuperare la JSP concatenando le stringhe "/WEB-INF/view" e ".jsp" al valore 
+della stringa ritornata.
+- viewClass: rappresenta la classe da cui ciascuna vista verrà istanziata. Se per esempio il nostro controller dovesse 
+			 tornare home il ViewResolver cercherebbe la JSP in /WEB-INF/view/home.jsp. Inoltre se nel metodo handler 
+			 viene istanziato o modificato un oggetto Model (o ModelAndView) esso viene passato alla JSP.
+- Prefix: prefisso aggiunto automaticamente
+- Suffix: suffisso aggiunto automaticamente
+In questo modo abbiamo definito il nostro ViewResolver che sarà in grado di recuperare la JSP concatenando le stringhe /WEB-INF/view e .jsp al valore della 
+stringa ritornata. Il parametro viewClass rappresenta la classe da cui ciascuna vista verrà istanziata. Se per esempio il nostro controller dovesse tornare 
+home il ViewResolver cercherebbe la JSP in /WEB-INF/view/home.jsp
+
+Inoltre se nel metodo handler viene istanziato o modificato un oggetto Model (o ModelAndView) esso viene passato alla JSP.
+@RequestMapping(value="/pagina-personale", method=RequestMethod.GET)
+    public String paginaPersonale(Model model) {
+    model.addAttribute("nome", "Alberto");
+    model.addAttribute("cognome", "Bottarini");
+    return "pagina-personale";
+}
+In questo caso i parametri aggiunti all’oggetto Model vengono resi disponibili nella JSP.
+<h1>Ciao <c:out value="${nome}" /> <c:out value="${cognome}" /></h1>
+
+E' possibile scrivere dei ViewResolver personalizzati. ramite una configurazione mirata è possibile gestire ViewResolver multipli, organizzandoli in una sorta 
+di serie ordinata dalla quale Spring MVC cercherà il resolver più adatto.
+<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+	<property name="order" value="1" />
+</bean>
+Dato che ora nel WebApplicationContext saranno presenti due diversi View esolver, è necessario aggiungere in almeno uno di essi la proprietà order per identificarne 
+la priorità. Impostando “1” come order del nuovo BeanNameViewResolver significherà che Spring MVC cercherà innanzitutto di utilizzare quest’ultimo come resolver e 
+in caso di insuccesso passerà al precedente UrlBasedViewResolver.
+
+// FORM

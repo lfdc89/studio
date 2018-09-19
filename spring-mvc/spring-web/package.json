@@ -9,6 +9,8 @@
   "author": "l.dicarlo",
   "license": "ISC",
   "dependencies": {
+    "angular": "^1.7.2",
+    "angularjs": "0.0.1",
     "bootstrap": "^4.1.3"
   }
 }
